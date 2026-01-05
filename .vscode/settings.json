@@ -59,7 +59,7 @@
 			"name": "bibtex",
 			"command": "bibtex",
 			"args": [
-				"%DOCFILE%"
+				"PDF/%DOCFILE%"
 			]
 		},
 		{
