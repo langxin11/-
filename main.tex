@@ -442,7 +442,7 @@ $\mathbf{y}_k = \mathbf{C} \mathbf{x}_k$进行跟踪并实现无稳态偏差控�
 
 模型预测控制（MPC）旨在求解受约束的有限时域优化问题，其与强化学习（Reinforcement Learning, RL）密切相关。RL 通过试错搜索（trial-and-error）学习如何进行序列决策以最大化数值奖励信号~\cite{sutton2018reinforcement}。RL 的交互特性结合神经网络的逼近能力，使得可以用这种强大的表示方法替代 MPC 中的每个组件（或部分组件）。文献~\cite{hoeller2020deep,lowrey2019plan} 通过展开当前策略并收集奖励信号，学习价值函数（value function），从而推导出终端与过渡代价函数。该奖励信号可以是二值或稀疏奖励，这为去除 MPC 中代价矩阵手工调节的需求提供了可能~\cite{karnchanachari2020practical}。文献~\cite{nagabandi2018neural} 使用神经网络学习系统的动力学函数，而文献~\cite{fan2020deep} 提出了一种深度分位数回归（deep quantile regression）框架，用于学习轨迹分布的边界，并在考虑执行噪声的全状态四旋翼模型上生成避障路径。
 
-当预测时域较长时，求解 MPC 问题的计算开销可能很高，使其在许多实时控制问题中不切实际。在这种情况下，可以使用深度 RL 来压缩 MPC 策略。文献~\cite{zhang2016learning} 利用专家 MPC（expert MPC）结合引导策略搜索（guided policy search）控制 MAV，不仅相比专家 MPC 显著减少了计算时间，还无需显式状态估计。文献~\cite{chen2018approximating} 提出一种受约束的神经网络结构来模拟显式 MPC 控制律，并进一步开发了策略梯度方法（policy gradient），其优势函数利用
+当预测时域较长时，求解 MPC 问题的计算开销可能很高，使其在许多实时控制问题中不切实际。在这种情况下，可以使用深度 RL 来压缩 MPC 策略。文献~\cite{zhang2016learning} 利用专家 MPC（expert MPC）结合引导策略搜索（guided policy search）控制 MAV，不仅相比专家 MPC 显著减少了计算时间，还无需显式状态估计。文献~\cite{chen2018approximating} 提出一种受约束的神经网络结构来模拟显式 MPC 控制律，并进一步开发了策略梯度方法（policy gradient），其优势函数利用是通过利用模型预测控制问题中的终端成本函数计算得出的。需要指出的是，在关键的约束优化问题中使用神经网络表示最优策略，必然需要验证方法来评估闭环系统的性能。文献~\cite{hu2020reach} 的工作展示了使用半定规划计算一个由神经网络控制的6自由度四旋翼模型的10步前向可达集。
 
 \subsection{负载运输}
 % \todo{【第五组成员】翻译 F. Load Transportation。}
