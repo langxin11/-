@@ -1,0 +1,264 @@
+%!TEX program = xelatex
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% 文件名：main.tex
+% 编译器：XeLaTeX (必须)
+% 字体需求：需在根目录创建 fonts 文件夹并上传 simsun.ttc, times.ttf, calibri.ttf
+% 参考文献：需在根目录创建 ref.bib 并填入 BibTeX 数据
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\documentclass[a4paper,zihao=-4]{ctexart} 
+
+%=================== 1. 宏包加载 ===================
+\usepackage{geometry}       
+\usepackage{fancyhdr}       
+\usepackage{fontspec}       
+\usepackage{titlesec}       
+\usepackage{titletoc}       
+\usepackage{setspace}       
+\usepackage{amsmath}        
+\usepackage{graphicx}       
+\usepackage{float}          
+\usepackage{cite}           
+\usepackage{caption}        
+\usepackage{anyfontsize}
+\usepackage{xcolor}         % 用于TODO高亮
+
+% 【修复红框】加载超链接包并隐藏边框
+\usepackage[hidelinks]{hyperref}
+
+% 定义 TODO 命令，红色加粗显示，用于提示组员
+\newcommand{\todo}[1]{\textcolor{red}{\textbf{[TODO: #1]}}}
+
+% 让每个一级标题自动换页
+\newcommand{\sectionbreak}{\clearpage}
+
+%=================== 2. 页面布局与行距 ===================
+\geometry{left=2.5cm, right=2.5cm, top=2.5cm, bottom=2.5cm}
+\linespread{1.5}
+\setlength{\headheight}{14pt} 
+
+%=================== 3. 字体设置 ===================
+% (1) 中文字体：宋体
+\setCJKmainfont[
+    Path=fonts/,
+    BoldFont=simsun.ttc, 
+    AutoFakeBold=true
+]{simsun.ttc}
+
+% (2) 英文字体：使用 TeX Gyre Termes（Times 兼容）
+\setmainfont{TeX Gyre Termes}
+
+% (3) 页脚专用字体：使用默认字体
+\newfontfamily\calibrifont{TeX Gyre Termes}
+
+%=================== 4. 页眉页脚设置 ===================
+\pagestyle{fancy}
+\fancyhf{} 
+
+% 前言页样式
+\fancypagestyle{frontstyle}{
+    \fancyhf{}
+    \fancyhead[C]{\songti\zihao{5} 最优控制课程设计报告}
+    \fancyfoot[C]{\calibrifont\bfseries\zihao{5} \textbf{\thepage}} 
+    \renewcommand{\headrulewidth}{0.5pt}
+}
+
+% 正文页样式
+\fancypagestyle{mainstyle}{
+    \fancyhf{}
+    \fancyhead[C]{\songti\zihao{5} 最优控制课程设计报告}
+    \fancyfoot[C]{\calibrifont\bfseries\zihao{5} \textbf{- \thepage\ -}}
+    \renewcommand{\headrulewidth}{0.5pt}
+}
+
+%=================== 5. 标题格式 ===================
+\ctexset{
+    section = {
+        name = {第,章},
+        number = \arabic{section},
+        format = \centering\bfseries\songti\zihao{3}, 
+        aftername = \quad,
+        beforeskip = 24pt,
+        afterskip = 18pt,
+    },
+    subsection = {
+        format = \bfseries\songti\zihao{-3}, 
+        indent = 0em,
+        beforeskip = 24pt,
+        afterskip = 6pt,
+    },
+    subsubsection = {
+        format = \bfseries\songti\zihao{4}, 
+        indent = 0em,
+        beforeskip = 12pt,
+        afterskip = 6pt,
+    }
+}
+
+%=================== 6. 目录格式 ===================
+\titlecontents{section}[0pt]{\addvspace{2pt}\filright}
+              {\songti\zihao{5} \thecontentslabel \quad}
+              {}{\titlerule*[8pt]{.}\contentspage}
+              
+\titlecontents{subsection}[2em]{\addvspace{2pt}\filright}
+              {\songti\zihao{5} \thecontentslabel\quad}
+              {}{\titlerule*[8pt]{.}\contentspage}
+              
+\titlecontents{subsubsection}[4em]{\addvspace{2pt}\filright}
+              {\songti\zihao{5} \thecontentslabel\quad}
+              {}{\titlerule*[8pt]{.}\contentspage}
+
+\titlecontents{numberlesssection}[0pt]{\addvspace{2pt}\filright}
+              {\songti\zihao{5}}
+              {}{\titlerule*[8pt]{.}\contentspage}
+
+%=================== 文档开始 ===================
+\begin{document}
+
+% --------- 前言部分 ---------
+\pagenumbering{Roman}
+\pagestyle{frontstyle}
+
+% 1. 摘要
+\phantomsection
+\addcontentsline{toc}{section}{摘要}
+\begin{center}
+    \vspace*{1em}
+    {\songti\bfseries\zihao{3} 摘要}
+\end{center}
+\vspace{1em}
+
+{\songti\zihao{-4}
+\todo{【第一组成员】在此处翻译论文的 Abstract 部分。内容应包括：回顾了模型预测控制（MPC）在微型飞行器（MAVs）中的设计与应用，涵盖线性与非线性动力学、状态与输入约束集成、容错设计、强化学习以及负载运输等任务 [cite: 4-8]。}
+
+\vspace{1em}
+{\bfseries
+    \noindent Abstract:
+    \todo{【Group 1】Paste the English abstract here. Use font Times New Roman Bold.}
+}}
+
+\clearpage
+
+% 2. 目录
+{
+    \songti\zihao{5}
+    \tableofcontents
+}
+\clearpage
+
+% --------- 正文部分 ---------
+\pagenumbering{arabic}
+\pagestyle{mainstyle}
+
+% ===================== 第1章 引言 =====================
+\section{引言}
+\todo{【第一组成员】翻译 I. INTRODUCTION。}
+
+\todo{重点内容：MAVs（特别是多旋翼）在巡检、监视等领域的广泛应用及其优势 [cite: 10-12]。强调控制器的准确性与鲁棒性是关键 [cite: 13]。引出模型预测控制（MPC）在处理约束、优化轨迹方面的优势 [cite: 24-28]。简述本文结构 [cite: 31-35]。}
+
+% ===================== 第2章 建模 =====================
+\section{微型飞行器建模}
+\todo{【第一组成员】翻译 II. MODELING OF MICRO AERIAL VEHICLES。}
+
+\subsection{动力学模型}
+\todo{请详细推导以下内容：}
+\begin{itemize}
+    \item \todo{坐标系定义：惯性系 $I$ 与机体系 $B$ 的定义 [cite: 73]；}
+    \item \todo{螺旋桨推力 $F_T$ 与力矩 $M_i$ 模型 (公式 1) [cite: 77-81]；}
+    \item \todo{包含气动阻力效应的受力分析 (公式 2) [cite: 83-86]；}
+    \item \todo{最终的平动与转动动力学方程 (公式 3-6)，注意解释 $R_{IB}$ 及外力项 $F_{ext}$ [cite: 87-97]。}
+\end{itemize}
+
+\subsection{姿态子系统}
+\todo{翻译关于姿态内环控制的假设。通常使用一阶模型近似闭环姿态动力学 [cite: 98-100]。请录入公式 (7)，描述 $\phi, \theta$ 的响应特性 [cite: 105-107]。}
+
+% ===================== 第3章 MPC综述 =====================
+\section{微型飞行器模型预测控制}
+\todo{【第二组成员】翻译 III. MODEL PREDICTIVE CONTROL FOR MAVS 章节开头的概述 [cite: 108-111]。}
+
+\subsection{线性模型预测控制}
+\todo{【第二组成员】翻译 A. Linear Model Predictive Control。}
+
+\subsubsection{模型线性化}
+\todo{翻译在悬停点附近的线性化过程。定义状态向量 $x$ 和输入 $u$ (公式 8-9) [cite: 115-116]。给出离散状态空间方程 $x_{k+1}=Ax_k+Bu_k+B_dF_{ext,k}$ (公式 11) [cite: 124]。}
+
+\subsubsection{最优控制问题构建}
+\todo{重点翻译公式 (12)-(13)，即 LMPC 的代价函数 $J = \sum (||x_k-x_{ref,k}||^2_{Q_x} + ||u_k-u_{ref,k}||^2_{R_u})$ 及其约束条件 [cite: 127-133]。}
+
+\subsubsection{扰动观测器}
+\todo{翻译基于扩维状态的扰动观测器设计 (公式 16) 及其在实现无静差跟踪中的作用 [cite: 142-151]。}
+
+\subsection{非线性模型预测控制}
+\todo{【第三组成员】翻译 B. Nonlinear Model Predictive Control。}
+
+\todo{翻译非线性最优控制问题的积分形式 (公式 18) [cite: 176]。描述状态约束 $x \in \mathcal{X}$ 和输入约束 $u \in \mathcal{U}$。介绍直接法（Direct Methods）和多重射击法（Multiple Shooting）在求解该问题中的应用 [cite: 184-186]。}
+
+\subsection{线性与非线性MPC的比较}
+\todo{【第三组成员】翻译 C. Comparison of Linear and Nonlinear MPC。}
+
+\todo{这是重点实验分析部分。请完成：}
+\begin{itemize}
+    \item \todo{插入 Figure 4：正弦轨迹跟踪对比。分析 NMPC 在剧烈机动下优于 LMPC 的原因 [cite: 260-262]。}
+    \item \todo{插入 Figure 5：质量参数不确定下的阶跃响应。分析扰动观测器的必要性 [cite: 264]。}
+    \item \todo{插入 Figure 7 或 Table I：关于计算时间与预测时域 $N$ 的关系分析 [cite: 225-236, 287-294]。}
+\end{itemize}
+
+\subsection{容错MPC}
+\todo{【第四组成员】翻译 D. Fault-Tolerant MPC。}
+
+\todo{描述 MAV 在螺旋桨部分或完全失效（如六旋翼失效3个电机）的情况下，如何利用 MPC 的约束处理能力保持可控性 [cite: 326-338]。}
+
+\subsection{深度强化学习}
+\todo{【第四组成员】翻译 E. Deep Reinforcement Learning。}
+
+\todo{探讨 RL 与 MPC 的结合点：1. 利用 RL 学习价值函数作为 MPC 的终端代价 [cite: 342]；2. 使用神经网络近似 MPC 策略以加速计算（Policy Search/Compression）[cite: 345-347]。}
+
+\subsection{负载运输}
+\todo{【第五组成员】翻译 F. Load Transportation。}
+
+\todo{翻译关于吊挂负载（Cable-suspended load）的控制挑战。MPC 如何处理负载摆动以及多机协同运输问题 [cite: 350-358]。}
+
+\subsection{物理交互}
+\todo{【第五组成员】翻译 G. Physical Interaction。}
+
+\todo{描述混合系统（Hybrid Systems）建模在物理交互（如接触墙面、开关门）中的应用。提及图 8 (Figure 8) 的交互动力学概念 [cite: 359-382]。}
+
+
+% ===================== 第5章 结论 =====================
+\section{结论}
+\todo{【第五组成员】翻译 V. CONCLUSIONS。}
+
+\todo{总结全文：MPC在MAV领域的现状（线性/非线性、容错、RL结合）及未来展望 [cite: 395-398]。}
+
+% --------- 附录部分 ---------
+\clearpage
+\appendix
+
+% 使用无编号 section*，并手动添加目录，避免出现 "A 附录"
+\section*{附录\quad 组员分工与心得体会}
+\addcontentsline{toc}{section}{附录\quad 组员分工与心得体会}
+
+{\songti\zihao{-4}
+    \begin{itemize}
+        \item \textbf{组员1}：负责摘要、引言及建模部分（第1-2章）。心得：通过推导公式(1)-(6)，深入理解了多旋翼飞行器的动力学特性...
+        \item \textbf{组员2}：负责线性MPC理论推导（第3.1节）。心得：掌握了利用泰勒展开进行模型线形化的方法...
+        \item \textbf{组员3}：负责非线性MPC及对比实验分析（第3.2-3.3节）。心得：...
+        \item \textbf{组员4}：负责容错控制与深度强化学习部分（第3.4-3.5节）。心得：...
+        \item \textbf{组员5}：负责特殊应用场景、开源资源及结论（第3.6-5章）。心得：...
+    \end{itemize}
+}
+
+% --------- 参考文献 ---------
+\clearpage
+\phantomsection
+\addcontentsline{toc}{section}{参考文献}
+
+\renewcommand{\refname}{\centering\songti\zihao{3}\bfseries 参考文献}
+
+{
+    \songti\zihao{-4}
+    \bibliographystyle{ieeetr} % IEEE 风格，按引用顺序排序
+    \bibliography{ref} % 确保根目录下有 ref.bib 文件
+}
+\end{document}
