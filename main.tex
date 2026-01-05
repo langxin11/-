@@ -22,6 +22,7 @@
 \usepackage{cite}           
 \usepackage{caption}        
 \usepackage{anyfontsize}
+\usepackage{mathtools,amssymb}
 \usepackage{xcolor}         % 用于TODO高亮
 
 % 【修复红框】加载超链接包并隐藏边框
@@ -175,54 +176,238 @@
 
 % ===================== 第3章 MPC综述 =====================
 \section{微型飞行器模型预测控制}
-\todo{【第二组成员】翻译 III. MODEL PREDICTIVE CONTROL FOR MAVS 章节开头的概述 [cite: 108-111]。}
-
+在本节中，我们概述了若干将模型预测控制成功应用于微型飞行器（MAVs）的代表性方法与策略。具体而言，介绍了线性与非线性控制方案，用于物理交互与载荷运输的控制方法，以及将传统模型预测控制与基于神经网络的强化学习相结合的相关技术。
 \subsection{线性模型预测控制}
-\todo{【第二组成员】翻译 A. Linear Model Predictive Control。}
-
 \subsubsection{模型线性化}
-\todo{翻译在悬停点附近的线性化过程。定义状态向量 $x$ 和输入 $u$ (公式 8-9) [cite: 115-116]。给出离散状态空间方程 $x_{k+1}=Ax_k+Bu_k+B_dF_{ext,k}$ (公式 11) [cite: 124]。}
+将模型预测控制（MPC）应用于四旋翼控制的最基本情形涉及线性方法。此外，在最为广泛采用的情况下，线性模型预测控制（LMPC）被用于处理微型飞行器（MAV）的位移动力学，前提是假定已部署姿态控制器，并且如式~(7) 所示，相关的闭环姿态动力学模型已经被辨识。在此模型基础上，可以对剩余的系统动力学在悬停平衡点附近进行线性化。定义如下的状态向量和控制输入：
+\begin{equation}
+    \mathbf{x} = [\mathbf{p}^\top \mathbf{\upsilon}^\top \prescript{}{\mathbb{I}}{\phi}\prescript{}{\mathbb{I}}{\theta}]^\top
+\end{equation}
+\begin{equation}
+    \mathbf{u} = \begin{bmatrix} \phi_{ref} & \theta_{ref} & T_{ref} \end{bmatrix}^\top
+\end{equation}
+其中，$T_{\mathrm{ref}}$ 表示指令参考推力，$\prescript{}{\mathbb{I}}{\phi}$ 与 $\prescript{}{\mathbb{I}}{\theta}$ 为在惯性坐标系中表示的横滚角与俯仰角。它们与飞行器机体横滚角和俯仰角之间满足如下关系：
+\begin{equation}
+\begin{bmatrix}
+\phi \\
+\theta
+\end{bmatrix}
+=
+\begin{bmatrix}
+\cos\psi & \sin\psi \\
+-\sin\psi & \cos\psi
+\end{bmatrix}
+\begin{bmatrix}
+\prescript{}{\mathbb{I}}{\phi} \\
+\prescript{}{\mathbb{I}}{\theta}
+\end{bmatrix}
+\end{equation}
+最后，在完成线性化与离散化之后，可得到如下状态空间形式，其中同时考虑了外部作用力 $\mathbf{F}_{\mathrm{ext},k}$ 及扰动矩阵 $\mathbf{B}_d$ 的影响：
+\begin{equation}
+\mathbf{x}_{k+1} = \mathbf{A} \mathbf{x}_k + \mathbf{B} \mathbf{u}_k + \mathbf{B}_d \mathbf{F}_{\mathrm{ext},k}
+\end{equation}
 
 \subsubsection{最优控制问题构建}
-\todo{重点翻译公式 (12)-(13)，即 LMPC 的代价函数 $J = \sum (||x_k-x_{ref,k}||^2_{Q_x} + ||u_k-u_{ref,k}||^2_{R_u})$ 及其约束条件 [cite: 127-133]。}
+在上述建模基础上，LMPC 策略通过反复求解如下最优控制问题（Optimal Control Problem, OCP）来实现控制，其中假设系统存在输入约束，但不考虑状态约束。
+\begin{equation}
+    \begin{aligned}
+        \min_{\mathbb{U}} \;&
+        \sum_{k=0}^{N-1} \Big(
+        \|\mathbf{x}_k - \mathbf{x}_{\mathrm{ref},k}\|_{\mathbf{Q}_x}^2
+        + \|\mathbf{u}_k - \mathbf{u}_{\mathrm{ref},k}\|_{\mathbf{R}_u}^2
+        \Big)
+        + \|\mathbf{x}_N - \mathbf{x}_{\mathrm{ref},N}\|_{\mathbf{P}}^2 \\
+        \text{s.t.}\quad
+        & \mathbf{x}_{k+1}
+        = \mathbf{A}\mathbf{x}_k
+        + \mathbf{B}\mathbf{u}_k
+        + \mathbf{B}_d \mathbf{F}_{\mathrm{ext},k}, \\
+        & \mathbf{F}_{\mathrm{ext},k+1}
+        = \mathbf{F}_{\mathrm{ext},k},
+        \quad k = 0,\dots,N-1, \\
+        & \mathbf{u}_k \in \mathbb{U}, \\
+        & \mathbf{x}_0 = \mathbf{x}(t_0), \quad
+        \mathbf{F}_{\mathrm{ext},0} = \mathbf{F}_{\mathrm{ext}}(t_0).
+    \end{aligned}
+\end{equation}
+其中，$\mathbf{Q}_x \succ 0$ 与 $\mathbf{R}_u \succ 0$ 分别为状态和控制输入的加权矩阵，$\mathbf{P} \succ 0$ 为终端状态误差的加权矩阵。此外，$\mathbf{x}_{\mathrm{ref},k}$ 与 $\mathbf{u}_{\mathrm{ref},k}$ 分别表示时刻 $k$ 的目标状态和目标控制输入，其中
+$\mathbf{u}_{\mathrm{ref},k} = [\prescript{}{\mathbb{I}}{\phi}_{\mathrm{ref},k},\ \prescript{}{\mathbb{I}}{\theta}_{\mathrm{ref},k},\ T_{\mathrm{ref},k}]^\top$.
+输入约束具有如下形式：
+\begin{equation}
+    \mathbb{U} = \left\{ \mathbf{u} \in \mathbb{R}^3 \middle| \begin{bmatrix} \phi_{\min} \\ \theta_{\min} \\ T_{ref,\min} \end{bmatrix} \leq \mathbf{u} \leq \begin{bmatrix} \phi_{\max} \\ \theta_{\max} \\ T_{ref,\max} \end{bmatrix} \right\}
+\end{equation}
+在每次迭代中完成控制律的推导之后，该方法仅施加第一个控制输入 $u_0$，随后以滚动时域（receding horizon）的方式重复上述整个过程。最后需要指出的是，为了补偿系统在横滚角和俯仰角不为零时推力投影效应，所得到的参考推力向量会经过非线性缩放处理。
+\begin{equation}
+    \tilde{T}_{ref} = \frac{T_{ref} + g}{\cos \phi \cos \theta}
+\end{equation}
+
 
 \subsubsection{扰动观测器}
-\todo{翻译基于扩维状态的扰动观测器设计 (公式 16) 及其在实现无静差跟踪中的作用 [cite: 142-151]。}
+为了实现无稳态偏差（offset-free）的跟踪控制，可以在上述设计中引入扰动观测器。其基本思想是通过将扰动向量引入系统模型，对系统进行增广建模。考虑到需要对系统输出
+$\mathbf{y}_k = \mathbf{C} \mathbf{x}_k$进行跟踪并实现无稳态偏差控制，可采用如下形式的简易观测器来对该扰动进行估计：
+\begin{equation}
+    \begin{bmatrix}
+        \hat{\mathbf{x}}_{k+1} \\
+        \hat{\mathbf{F}}_{ext,k+1}
+        \end{bmatrix}
+        =
+        \begin{bmatrix}
+        \mathbf{A} & \mathbf{B}_d \\
+        0 & \mathbf{I}
+        \end{bmatrix}
+        \begin{bmatrix}
+        \hat{\mathbf{x}}_k \\
+        \hat{\mathbf{F}}_{ext,k}
+        \end{bmatrix}
+        +
+        \begin{bmatrix}
+        \mathbf{B} \\
+        0
+        \end{bmatrix}
+        \mathbf{u}_k
+        +
+        \begin{bmatrix}
+        \mathbf{L}_x \\
+        \mathbf{L}_{\mathbf{F}_{ext}}
+        \end{bmatrix}
+        (\mathbf{C}\hat{\mathbf{x}}_k - \mathbf{y}_{m,k})
+\end{equation}
+其中，$\hat{\mathbf{x}}_k$、$\hat{\mathbf{F}}_{\mathrm{ext},k}$ 与 $\mathbf{y}_{m,k}$ 分别表示时刻 $k$ 的状态估计、外部扰动估计以及测量输出，而 $\mathbf{L}_x$ 与 $\mathbf{L}_{F_{\mathrm{ext}}}$ 为对应的观测器增益。假设观测器是稳定的，则可通过求解以下方程，计算时刻 $k$ 的稳态 MPC 状态 $\mathbf{x}_{\mathrm{ref},k}$ 和控制输入 $\mathbf{u}_{\mathrm{ref},k}$：
+\begin{equation}
+    \begin{bmatrix}
+    \mathbf{A}-\mathbf{I} & \mathbf{B} \\
+    \mathbf{C} & \mathbf{0}
+    \end{bmatrix}
+    \begin{bmatrix}
+    \mathbf{x}_{ref,k} \\
+    \mathbf{u}_{ref,k}
+    \end{bmatrix}
+    =
+    \begin{bmatrix}
+    -\mathbf{B}_d \hat{\mathbf{F}}_{ext,k} \\
+    \mathbf{r}_k
+    \end{bmatrix}
+\end{equation}
+其中，$\mathbf{r}_k$ 表示时刻 $k$ 的输出向量参考值。
+
+上述推导对应了线性 MPC 在微型飞行器（MAV）位置控制中最直接的应用。同时，研究界也探索了更多丰富的方法。在该研究的早期阶段，文献~\cite{alexis2010design} 提出了将此类滚动时域（receding horizon）方案应用于四旋翼的姿态控制，并进一步考虑了状态约束。由于带输入和状态约束的 MPC 计算开销较大——尤其相对于快速的姿态动力学——文献~\cite{herceg2013multiparametric} 探讨了多参数方法以显式推导控制律。同期，文献~\cite{raffo2010integral} 提出了带积分项的 LMPC 方法。为了考虑当工作点显著偏离悬停点时系统动力学的变化，但仍未采用非线性方法，文献~\cite{alexis2011switching,alexis2012model} 提出了分段仿射（PieceWise Affine, PWA）建模方法及其对应的预测控制策略，用于四旋翼 MAV 的完整控制。此外，文献~\cite{alexis2016robust} 研究了鲁棒 MPC 的设计，并展示了广泛的扰动抑制能力，包括处理悬挂载荷扰动的能力。目前，LMPC 方法已取得显著成功，并在研究实验室的多旋翼系统中得到广泛应用，这在第~IV 节关于开源软件包的讨论中也有所体现。连接线性与非线性 MPC 的领域，文献~\cite{greeff2018flatness} 提出了一种基于平坦性（flatness-based）的控制方法，通过反馈线性化实现，在飞行包络内提供灵活机动的飞行能力，同时保留了线性方法通常较低的计算开销。
+
+\textbf{可达性分析（Reachability Analysis）}：当考虑安全关键应用时，必须保证控制性能。通常，对于动态系统，给定时间 $t$、输入 $u$、扰动 $w$ 以及初始状态集合 $S$，可达集合 $R$ 定义为从 $S$ 出发经过时间 $t$ 后轨迹的终态集合~\cite{schürmann2018reachset}。尽管可达集合分析对 MPC 控制器非常重要，但在 MAV 的 MPC 应用文献中，这类考虑大多缺失。少数直接或间接相关的研究从 MPC 或基于学习的方法角度探讨了该问题~\cite{gillula2011applications,aswani2012extensions}，然而该领域仍有进一步研究的必要。
 
 \subsection{非线性模型预测控制}
-\todo{【第三组成员】翻译 B. Nonlinear Model Predictive Control。}
+% \todo{【第三组成员】翻译 B. Nonlinear Model Predictive Control。}
+线性控制方法因其实现简单且通常计算需求较低而具有吸引力。长期的实践经验表明，当多旋翼微型飞行器（MAV）主要在悬停或小角度范围内运行时，LMPC 方法能够提供较高的性能与鲁棒性。然而，如果希望充分利用系统的完整飞行包线（flight envelope），则必须采用非线性控制方法。
 
-\todo{翻译非线性最优控制问题的积分形式 (公式 18) [cite: 176]。描述状态约束 $x \in \mathcal{X}$ 和输入约束 $u \in \mathcal{U}$。介绍直接法（Direct Methods）和多重射击法（Multiple Shooting）在求解该问题中的应用 [cite: 184-186]。}
+为了实现这一目标，我们推导了非线性模型预测控制（Nonlinear Model Predictive Control, NMPC）的基线形式。考虑如下的状态向量与控制输入向量：
+\begin{equation}
+    \mathbf{x} = \left[ \mathbf{p}^\top \ \mathbf{\upsilon}^\top \ \prescript{}{\mathbb{I}}{\phi}\prescript{}{\mathbb{I}}{\theta}\prescript{}{\mathbb{I}}{\psi} \right]^\top
+\end{equation}
+\begin{equation}
+    \mathbf{u} = [\prescript{}{\mathbb{I}}{\phi}_{\text{ref}} \quad \prescript{}{\mathbb{I}}{\theta}_{\text{ref}} \quad T_{\text{ref}}]^\top
+\end{equation}
+这进而使我们能够构建非线性OCP：
+\begin{equation}
+    \begin{aligned}
+        \min_{\mathbf{U}} & \int_{t=0}^{T} \left( \| \mathbf{x}(t) - \mathbf{x}_{ref}(t) \|_{\mathbf{Q}_x}^2 + \| \mathbf{u}(t) - \mathbf{u}_{ref}(t) \|_{\mathbf{R}_u}^2 \right) \mathrm{d}t \\
+        & \quad + \| \mathbf{x}(T) - \mathbf{x}_{ref}(T) \|_\mathbf{P}^2 \\
+        \text{s.t.} \quad & \dot{\mathbf{x}} = \mathbf{f}(\mathbf{x}, \mathbf{u}) \\
+        & \mathbf{u}(t) \in \mathbb{U} \\
+        & \mathbf{x}(0) = \mathbf{x}(t_0)
+    \end{aligned}
+\end{equation}
+其中，$\mathbf{f}$ 由式~(3)、(4) 和 (7) 定义。该控制器以滚动时域（receding horizon）的方式实现，其中的优化问题需要实时求解。通常，这是一项计算量较大的任务，尤其是对于具有快速动力学的微型飞行器（MAVs）以及常有限的机载计算能力而言。因此，直接方法（direct methods）18 因其较低的计算需求而受到广泛关注。特别地，多重射击（multiple shooting）技术被用于求解式~(20)，其方法是将系统动力学和约束在 $[t_k, t_{k+1}]$ 时间区间内的粗离散时间网格 $t_0, \dots, t_N$ 上离散化，并在每个区间上求解一个边值问题，同时施加连续性约束。
+
+类似于 LMPC 的情况，我们可以估计外部扰动 $F_{\mathrm{ext}}$。在 NMPC 中，这通过包含外部力的增广状态扩展卡尔曼滤波器（Extended Kalman Filter, EKF）来实现。该 EKF 使用与控制设计相同的系统模型，同时进一步引入航向角。外部力的估计能够兼顾建模误差，并支持无稳态偏差（offset-free）的跟踪控制。
+
+\textbf{文献综述}：在 MAVs 的 NMPC 基线方法基础上，社区研究还涉及更多问题。文献~\cite{bicego2020nonlinear} 考虑了一般的 MAV 设计，并采用增强的执行器模型以提升跟踪性能。文献~\cite{kamel2017linear} 探讨了将 NMPC 直接应用于系统内部姿态动力学的问题。文献~\cite{pereira2019nonlinear} 提出了一种基于特殊欧几里得群 SE(3) 的 NMPC 方法，该方法仅包含单层优化，能够实现安全的轨迹跟踪并具备避障能力。文献~\cite{bicego2019nonlinear} 明确考虑了多旋翼 MAV NMPC 设计中输入约束的作用。为实现敏捷性能同时兼顾轻量计算需求，文献~\cite{neunert2016fast} 提出了一种实时无约束 NMPC 方法，将轨迹优化与跟踪控制统一在单一方法中。该方法在 MPC 框架下使用迭代最优控制算法——即序列线性二次（Sequential Linear Quadratic, SLQ）方法——求解基础的非线性控制问题，同时导出最优前馈与反馈控制项。作者展示了该求解器能够在仅数毫秒内生成持续数秒的轨迹。针对无碰撞飞行问题，文献~\cite{garimella2017robust} 将 NMPC 应用于四旋翼 MAV 的障碍物避让问题。类似地，文献~\cite{small2019aerial} 利用 NMPC 实现对包括非凸形状在内的复杂障碍物的避让。考虑到携带外部负载的特殊需求，文献~\cite{gonzalez2015nonlinear} 将 NMPC 应用于四旋翼 MAV 的悬挂负载振荡抑制问题。
+
+% \todo{翻译非线性最优控制问题的积分形式 (公式 18) [cite: 176]。描述状态约束 $x \in \mathcal{X}$ 和输入约束 $u \in \mathcal{U}$。介绍直接法（Direct Methods）和多重射击法（Multiple Shooting）在求解该问题中的应用 [cite: 184-186]。}
 
 \subsection{线性与非线性MPC的比较}
-\todo{【第三组成员】翻译 C. Comparison of Linear and Nonlinear MPC。}
+% \todo{【第三组成员】翻译 C. Comparison of Linear and Nonlinear MPC。}
 
-\todo{这是重点实验分析部分。请完成：}
-\begin{itemize}
-    \item \todo{插入 Figure 4：正弦轨迹跟踪对比。分析 NMPC 在剧烈机动下优于 LMPC 的原因 [cite: 260-262]。}
-    \item \todo{插入 Figure 5：质量参数不确定下的阶跃响应。分析扰动观测器的必要性 [cite: 264]。}
-    \item \todo{插入 Figure 7 或 Table I：关于计算时间与预测时域 $N$ 的关系分析 [cite: 225-236, 287-294]。}
-\end{itemize}
+% \todo{这是重点实验分析部分。请完成：}
+% \begin{itemize}
+%     \item \todo{插入 Figure 4：正弦轨迹跟踪对比。分析 NMPC 在剧烈机动下优于 LMPC 的原因 [cite: 260-262]。}
+%     \item \todo{插入 Figure 5：质量参数不确定下的阶跃响应。分析扰动观测器的必要性 [cite: 264]。}
+%     \item \todo{插入 Figure 7 或 Table I：关于计算时间与预测时域 $N$ 的关系分析 [cite: 225-236, 287-294]。}
+% \end{itemize}
+由于自由飞行控制是多旋翼 MAV 的主要控制任务，本节对六旋翼 MAV 的位置跟踪问题，比较了两种基线的线性与非线性 MPC 方法。具体而言，使用文献~\cite{kamel2017model} 中给出的 C++ 实现，对线性与非线性 MPC 控制器的性能进行了比较，仿真模型为基于 RotorS 开源仿真器~\cite{furrer2016rotors} 的 AscTec Firefly 六旋翼。两个控制器的权重矩阵 $Q_x$ 和 $R_u$ 相同，而终端矩阵 $P$ 则通过求解对应的离散代数 Riccati 方程获得。
+
+从图~\ref{fig:4} 可观察到，当轨迹更为激进（$t \in [40,48]$ s）时，非线性 MPC 的性能优于线性 MPC，这是因为非线性 MPC 能在无人机倾转角较大时充分利用系统的非线性动力学。此情况下，非线性与线性 MPC 的均方根误差（RMSE）分别为 8.6 cm 和 19.0 cm。本文还验证了线性 MPC 在参数不确定性（本例为质量参数）下的性能，如图~\ref{fig:5} 所示。可以看到，尽管 $x$ 和 $y$ 轴响应变化不大，但当系统质量参数不正确时，$z$ 轴响应出现偏移，这表明在实际应用中需要引入扰动观测器。
+\begin{figure}
+    \centering
+    \includegraphics[width=0.5\linewidth]{fig/4.png}
+    \caption{线性与非线性 MPC 在不同频率范围 ($[0.1, 0.33]$ Hz) 的正弦输入信号下的位移响应。}
+    \label{fig:4}
+\end{figure}
+\begin{figure}
+    \centering
+    \includegraphics[width=0.5\linewidth]{fig/5.png}
+    \caption{当微型飞行器（MAV）质量设置正确 ($m = 1.5$ kg) 及设置不正确 ($m = 1.2$ kg 和 $m = 1.8$ kg) 时，线性 MPC 的阶跃响应。所有情况下扰动观测器均关闭。对应的 $z$ 轴均方根误差（RMSE）分别为 30.36 cm、42.3 cm 和 45.1 cm。}
+    \label{fig:5}
+\end{figure}
+众所周知，MPC 问题中的预测步数对闭环系统的可行性与稳定性有显著影响。具体而言，增加预测时域可以扩大系统的吸引域~\cite{borrelli2017predictive}。图~\ref{fig:6} 展示了闭环系统在不同预测时域和输入信号（如图~\ref{fig:5} 所示）下的响应，均方根误差（RMSE）值列于表~I 中。可以看到，适度增加预测步数能够提升跟踪性能。然而，如图~\ref{fig:7} 的箱线图所示，使用更长预测时域求解 MPC 问题需要更多计算时间。图~\ref{fig:7} 中以红色叉号标出的离群值对应于控制输入接近限制的情况，此时求解器需要更多迭代才能找到解。有趣的是，基于文献~\cite{houska2011acado} 的非线性 MPC 求解器相比基于文献~\cite{mattingley2011cvxgen} 的线性 MPC 求解器具有更短的计算时间。
 
 \subsection{容错MPC}
-\todo{【第四组成员】翻译 D. Fault-Tolerant MPC。}
+容错性是每种控制方案的核心特性。由于微型飞行器（MAVs）可能承担关键任务，而其空中特性又使其成为潜在的风险因素，因此评估其飞行控制的容错能力尤为重要。文献~\cite{muller2014stability} 展示了即便四旋翼 MAV 失去一个、两个甚至三个螺旋桨，其自由度仍能保持完全或部分可控性的潜力。自然地，当 MAV 集成更多执行器（例如六旋翼）时，可进行的控制重新分配选项也随之增加。在 MPC 相关工作方面，文献~\cite{kamel2015fast,tzoumanikas2020nonlinear,wu2019nonlinear} 在不同设计下展示了 NMPC 在对称欠驱动六旋翼受到螺旋桨失效影响时，保持动态稳定性的固有能力。此外，文献~\cite{aoki2018nonlinear} 展示了 NMPC 在三台电机失效的六旋翼上的应用。文献~\cite{yu2015mpc} 探讨了四旋翼执行器部分控制有效性丧失的情况，并应用带终端约束的 MPC 来实现即便存在故障也能准确跟踪参考值，同时设计了故障检测与诊断系统以辅助 MPC 执行控制任务。考虑到 MAV 在安全关键应用或国家空域中的重要性，容错预测控制设计的重要性将进一步提升。
+\begin{figure}
+    \centering
+    \includegraphics[width=0.5\linewidth]{fig/6.png}
+    \caption{线性与非线性 MPC 在不同预测时域下的阶跃响应（$N = 10, 20, 30$ 个预测步长 $T_p = 0.1$ s）。}
+    \label{fig:6}
+\end{figure}
 
-\todo{描述 MAV 在螺旋桨部分或完全失效（如六旋翼失效3个电机）的情况下，如何利用 MPC 的约束处理能力保持可控性 [cite: 326-338]。}
+\begin{table}[h!]
+    \centering
+    \caption{LINEAR MPC 和 NONLINEAR MPC 在图~\ref{fig:5} 参考信号下的 xyz 响应 RMSE 值}
+    \label{tab:rmse_prediction_horizon}
+    \begin{tabular}{c|c|c|c}
+    \hline
+     & $N=10$ & $N=20$ & $N=30$ \\
+    \hline
+    LMPC (m) & 1.06 & 0.78 & 0.78 \\
+    NMPC (m) & 0.79 & 0.74 & 0.74 \\
+    \hline
+    \end{tabular}
+\end{table}
+
+\begin{figure}
+    \centering
+    \includegraphics[width=0.5\linewidth]{fig/7.png}
+    \caption{线性与非线性 MPC 在不同预测时域下控制回路的计算时间（使用第 8 代 Intel i7 CPU）。参考信号如图~\ref{fig:5} 所示。}
+    \label{fig:7}
+\end{figure}
+% \todo{描述 MAV 在螺旋桨部分或完全失效（如六旋翼失效3个电机）的情况下，如何利用 MPC 的约束处理能力保持可控性 [cite: 326-338]。}
 
 \subsection{深度强化学习}
-\todo{【第四组成员】翻译 E. Deep Reinforcement Learning。}
+% \todo{【第四组成员】翻译 E. Deep Reinforcement Learning。}
 
-\todo{探讨 RL 与 MPC 的结合点：1. 利用 RL 学习价值函数作为 MPC 的终端代价 [cite: 342]；2. 使用神经网络近似 MPC 策略以加速计算（Policy Search/Compression）[cite: 345-347]。}
+% \todo{探讨 RL 与 MPC 的结合点：1. 利用 RL 学习价值函数作为 MPC 的终端代价 [cite: 342]；2. 使用神经网络近似 MPC 策略以加速计算（Policy Search/Compression）[cite: 345-347]。}
+
+模型预测控制（MPC）旨在求解受约束的有限时域优化问题，其与强化学习（Reinforcement Learning, RL）密切相关。RL 通过试错搜索（trial-and-error）学习如何进行序列决策以最大化数值奖励信号~\cite{sutton2018reinforcement}。RL 的交互特性结合神经网络的逼近能力，使得可以用这种强大的表示方法替代 MPC 中的每个组件（或部分组件）。文献~\cite{hoeller2020deep,lowrey2019plan} 通过展开当前策略并收集奖励信号，学习价值函数（value function），从而推导出终端与过渡代价函数。该奖励信号可以是二值或稀疏奖励，这为去除 MPC 中代价矩阵手工调节的需求提供了可能~\cite{karnchanachari2020practical}。文献~\cite{nagabandi2018neural} 使用神经网络学习系统的动力学函数，而文献~\cite{fan2020deep} 提出了一种深度分位数回归（deep quantile regression）框架，用于学习轨迹分布的边界，并在考虑执行噪声的全状态四旋翼模型上生成避障路径。
+
+当预测时域较长时，求解 MPC 问题的计算开销可能很高，使其在许多实时控制问题中不切实际。在这种情况下，可以使用深度 RL 来压缩 MPC 策略。文献~\cite{zhang2016learning} 利用专家 MPC（expert MPC）结合引导策略搜索（guided policy search）控制 MAV，不仅相比专家 MPC 显著减少了计算时间，还无需显式状态估计。文献~\cite{chen2018approximating} 提出一种受约束的神经网络结构来模拟显式 MPC 控制律，并进一步开发了策略梯度方法（policy gradient），其优势函数利用
 
 \subsection{负载运输}
-\todo{【第五组成员】翻译 F. Load Transportation。}
+% \todo{【第五组成员】翻译 F. Load Transportation。}
 
-\todo{翻译关于吊挂负载（Cable-suspended load）的控制挑战。MPC 如何处理负载摆动以及多机协同运输问题 [cite: 350-358]。}
+% \todo{翻译关于吊挂负载（Cable-suspended load）的控制挑战。MPC 如何处理负载摆动以及多机协同运输问题 [cite: 350-358]。}
+类似于载人飞行器，微型空中飞行器（MAVs）也被考虑用于载荷运输任务~\cite{villa2019survey}。尽管 MPC，尤其是某些设计变体~\cite{alexis2016robust}，具有较高的鲁棒性，但对于单个或多个多旋翼系统的高性能载荷运输，仍需要特殊的控制设计。文献~\cite{jain2015transportation} 提出了一种基于四旋翼的悬挂负载运输方法。文献~\cite{garimella2015towards} 则提出了基于 MPC 方法的空中抓取与搬运（aerial pick-and-place）。考虑到倾转旋翼系统（tilt-rotor）的优势，文献~\cite{santos2016path,andrade2016model} 提出了用于载荷运输的 MPC 方法。由于在悬挂负载操作过程中，不仅飞行器本身可能与环境碰撞，载荷本身也可能发生碰撞，文献~\cite{son2018model} 明确推导了载荷运输操作的安全路径。考虑到多机器人协作在载荷运输中的潜力，文献~\cite{alothman2018using} 提出了针对两架飞行器的 MPC 设计，而文献~\cite{tartaglione2017model} 则给出了更为一般的问题形式化。
 
 \subsection{物理交互}
-\todo{【第五组成员】翻译 G. Physical Interaction。}
+% \todo{【第五组成员】翻译 G. Physical Interaction。}
 
-\todo{描述混合系统（Hybrid Systems）建模在物理交互（如接触墙面、开关门）中的应用。提及图 8 (Figure 8) 的交互动力学概念 [cite: 359-382]。}
+% \todo{描述混合系统（Hybrid Systems）建模在物理交互（如接触墙面、开关门）中的应用。提及图 8 (Figure 8) 的交互动力学概念 [cite: 359-382]。}
+MPC 方法同样被应用于研究微型飞行器（MAVs）与环境进行物理交互的场景。文献~\cite{darivianakis2014hybrid} 针对四旋翼 MAV 提出了基于混合系统的建模方法，该 MAV 可在自由飞行中导航，或与环境接触以执行巡检任务。该工作首先利用闭环姿态动力学的系统辨识结果，对四旋翼在自由飞行中的位置动力学进行线性化建模；同时，将 MAV 与环境接触时的系统线性模型引入，通过考虑物理表面施加的力实现组合。混合系统方法的适用性在于碰撞动力学变化极快，因此可以将其作为非光滑效应处理，而无需使用刚性微分方程~\cite{jean1999non}。更广泛的示意如图~\ref{fig:8} 所示。
+\begin{figure}
+    \centering
+    \includegraphics[width=0.5\linewidth]{fig/8.png}
+    \caption{微型飞行器的物理交互促成了混合系统框架。在自由飞行时，机械臂/末端执行器引起的扰动也需要考虑，而在物理交互过程中，环境施加的力必须被考虑。}
+    \label{fig:8}
+\end{figure}
+
+基于类似原理，文献~\cite{papachristos2014technical} 利用 MPC 和倾转旋翼 MAV 执行带力的工作任务。针对更具挑战性的任务，文献~\cite{garimella2015towards} 提出了一种 MPC 框架，用于 MAV 执行空中抓取与搬运任务。在空中操作问题上，文献~\cite{lunni2017nonlinear} 提出一种 NMPC 方法，使多旋翼 MAV 的末端执行器能够跟踪期望轨迹，并进一步研究了操作器在自由飞行中提供的增强运动学潜力。针对特定任务如开门，文献~\cite{lee2019model} 提出了一种模型预测控制框架（模拟仿真环境），用于四旋翼 MAV 搭载机载机械臂打开铰链门。为了扩展 MAV 在环境中执行工作任务的能力，文献~\cite{kocer2018constrained} 考虑了 MAV 通过弹性工具与环境交互的问题。
 
 
 % ===================== 第5章 结论 =====================
